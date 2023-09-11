@@ -1,10 +1,11 @@
 #include <stdio.h>
+#include <stdlib.h>
 
-int main(){
+int main() {
   int size = 10;
-  int* as = (int*) malloc(sizeof(int) * size);
+  int *as = (int *)malloc(sizeof(int) * size);
 
-  for(size_t i = 0; i < size; ++i){
+  for (size_t i = 0; i < size; ++i) {
     as[i] = 0;
   }
 
