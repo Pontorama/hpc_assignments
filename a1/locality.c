@@ -12,7 +12,7 @@ void row_sums(double *sums, const double **matrix, size_t nrs, size_t ncs) {
     for (size_t j = 0; j < ncs; j++) {
       sum += matrix[i][j];
     }
-    *sums += sum;
+    sums[i] = sum;
   }
 }
 
@@ -22,7 +22,7 @@ void col_sums(double *sums, const double **matrix, size_t nrs, size_t ncs) {
     for (size_t j = 0; j < ncs; j++) {
       sum += matrix[j][i];
     }
-    *sums += sum;
+    sums[i] = sum;
   }
 }
 
@@ -30,7 +30,7 @@ int main() {
   // Seed random number
   srand(time(NULL));
   // Allocate (contigous) memory
-  uint size = 10000;
+  uint size = 1000;
   double *asentries = (double *)malloc(sizeof(double) * size * size);
   double **as = (double **)malloc(sizeof(double *) * size);
 
@@ -78,8 +78,6 @@ int main() {
   // Free memory
   free(sums);
   free(all_sums);
-  free(asentries);
-  free(as);
 
   // Col sum
   struct timespec start_time_col;
@@ -98,7 +96,7 @@ int main() {
   }
   timespec_get(&start_time_col, TIME_UTC);
   for (uint iter = 0; iter < iterations; iter++) {
-    row_sums(all_sums[iter], (const double **)as, size, size);
+    col_sums(all_sums[iter], (const double **)as, size, size);
   }
   timespec_get(&stop_time_col, TIME_UTC);
 
@@ -108,7 +106,7 @@ int main() {
   rand_index = (int)((double)rand() / (RAND_MAX * iterations));
   rand_index_row = (int)((double)rand() / (RAND_MAX * size));
   printf("(Col) sum is %f\n", all_sums[rand_index][rand_index_row]);
-  printf("Time: %fmus\n", diff_time_row);
+  printf("Time: %fmus\n", diff_time_col);
 
   // Free memory
   free(sums);
