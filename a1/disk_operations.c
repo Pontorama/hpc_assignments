@@ -3,26 +3,16 @@
 #include <stdlib.h>
 #include <time.h>
 
-void write_to_disk(FILE *file) {
-  int big_num = 1;
-  for (int i = 0; i < 20; i++) {
-    big_num *= 2;
-    fwrite((void *)&big_num, sizeof(int), 1, file);
-    fflush(file);
-  }
-}
-
-void read_from_disk(FILE *file) {
-  int big_num;
-  for (int i = 0; i < 20; i++) {
-    fread((void *)&big_num, sizeof(int), 1, file);
-  }
-}
-
 int main() {
+  char filename[13] = "testfile.dat\0";
   int iterations = 10;
+  // Prepare numbers
+  int big_num = 1;
+  for (size_t i = 0; i < 20; i++) {
+    big_num *= 2;
+  }
   // Open file for use
-  FILE *file = fopen("testfile.dat", "w");
+  FILE *file = fopen(filename, "w");
   if (file == NULL) {
     printf("Error opening file\n");
     return -1;
@@ -34,7 +24,10 @@ int main() {
 
   timespec_get(&start_time, TIME_UTC);
   for (int iter = 0; iter < iterations; iter++) {
-    write_to_disk(file);
+    for (int i = 0; i < big_num; i++) {
+      fwrite((void *)&i, sizeof(int), 1, file);
+      fflush(file);
+    }
   }
   timespec_get(&stop_time, TIME_UTC);
   double difftime = get_timediff_mus(start_time, stop_time);
@@ -44,16 +37,60 @@ int main() {
   printf("Writing to file, individual write\n");
   printf("Took %f mus\n", difftime);
 
-  // Benchmark reading
-  file = fopen("testfile.dat", "r");
+  // Benchmark vector write
+  file = fopen(filename, "w");
   if (file == NULL) {
     printf("Error opening file\n");
     return -1;
   }
 
+  int *vector = (int *)malloc(sizeof(int) * big_num);
+  for (int i = 0; i < big_num; i++) {
+    vector[i] = i;
+  }
+  timespec_get(&start_time, TIME_UTC);
+  for (size_t iter = 0; iter < iterations; iter++) {
+    fwrite((void *)vector, sizeof(int), big_num, file);
+    fflush(file);
+  }
+  timespec_get(&stop_time, TIME_UTC);
+  difftime = get_timediff_mus(start_time, stop_time);
+  fclose(file);
+  free(vector);
+
+  printf("Writing to file, vector\n");
+  printf("Took %f mus\n", difftime);
+
+  // Benchmark reading
+  file = fopen(filename, "r");
+  if (file == NULL) {
+    printf("Error opening file\n");
+    return -1;
+  }
+
+  int read_big_num;
   timespec_get(&start_time, TIME_UTC);
   for (int iter = 0; iter < iterations; iter++) {
-    read_from_disk(file);
+    fread(&read_big_num, sizeof(int), 1, file);
+  }
+  timespec_get(&stop_time, TIME_UTC);
+  difftime = get_timediff_mus(start_time, stop_time);
+  printf("Reading from file, individual read\n");
+  printf("Took %f mus\n", difftime);
+
+  fclose(file);
+
+  // Benchmark vector read
+  file = fopen(filename, "r");
+  if (file == NULL) {
+    printf("Error opening file\n");
+    return -1;
+  }
+
+  vector = (int *)malloc(sizeof(int) * big_num);
+  timespec_get(&start_time, TIME_UTC);
+  for (int iter = 0; iter < iterations; iter++) {
+    fread(vector, sizeof(int), big_num, file);
   }
   timespec_get(&stop_time, TIME_UTC);
   difftime = get_timediff_mus(start_time, stop_time);
