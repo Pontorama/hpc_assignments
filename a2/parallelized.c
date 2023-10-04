@@ -22,7 +22,6 @@ float get_distance(float *point_1, float *point_2) {
 
 int main(int argc, char **argv) {
   char filename[10] = "cells.txt";
-  // TODO: Are multiple file pointers needed?
   short line_size = 24; // 24 characters per line in input file
   short point_char_size =
       8; // 8 characters per point in file (including spaces)
