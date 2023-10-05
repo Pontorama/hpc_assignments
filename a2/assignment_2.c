@@ -3,16 +3,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static inline float get_distance(float *point_1, float *point_2) {
+static inline float get_distance(char *point_1, char *point_2) {
   // Assumes points in R^3
-  return sqrtf((point_2[0] - point_1[0]) * (point_2[0] - point_1[0]) +
-               (point_2[1] - point_1[1]) * (point_2[1] - point_1[1]) +
-               (point_2[2] - point_1[2]) * (point_2[2] - point_1[2]));
+  // Convert from text to floats
+  float point_1_num[3];
+  float point_2_num[3];
+
+  sscanf(point_1, "%f %f %f\n", &point_1_num[0], &point_1_num[1],
+         &point_1_num[2]);
+  sscanf(point_2, "%f %f %f\n", &point_2_num[0], &point_2_num[1],
+         &point_2_num[2]);
+  return sqrtf(
+      (point_2_num[0] - point_1_num[0]) * (point_2_num[0] - point_1_num[0]) +
+      (point_2_num[1] - point_1_num[1]) * (point_2_num[1] - point_1_num[1]) +
+      (point_2_num[2] - point_1_num[2]) * (point_2_num[2] - point_1_num[2]));
 }
 
 int main(int argc, char **argv) {
   // Read cmd line inputs here
-
+  unsigned short n_threads = 4;
   // Open file, get file length
   char filename[10] = "cells.txt";
   FILE *file = fopen(filename, "r");
@@ -21,65 +30,47 @@ int main(int argc, char **argv) {
   const unsigned int file_size = ftell(file) / line_size;
   rewind(file);
 
-  omp_set_num_threads(4);
+  omp_set_num_threads(n_threads);
 
   const unsigned int chunk_size = 10;
 
-  float *all_cell_entries = (float *)malloc(sizeof(float) * chunk_size * 3);
-  float **all_cells = (float **)malloc(sizeof(float *) * chunk_size);
-  for (short i = 0; i < chunk_size; i++) {
-    all_cells[i] = all_cell_entries + i * 3;
-  }
-
-  for (size_t i = 0; i < chunk_size; i++) {
-    for (size_t j = 0; j < 3; j++) {
-      all_cells[i][j] = 0;
-    }
-  }
-
+  // TODO: Duplicate histogram into as many pieces as there are threads
   const unsigned short max_distance = 3465;
   unsigned long long int *distances = (unsigned long long int *)malloc(
       sizeof(unsigned long long int) * max_distance);
 
-  unsigned int current_cell_point = 0;
-  float *current_cell = (float *)malloc(sizeof(float) * 3);
-  char *chunk_string =
-      (char *)malloc(sizeof(char) * (chunk_size * line_size + 1));
+  char format[10];
+  sprintf(format, "%%%ic", line_size * chunk_size);
 
-#pragma omp parallell shared(all_cells, distances, current_cell, chunk_string, \
-                                 current_cell_point)
-  for (size_t i = 0; i < file_size; i++) {
-    fseek(file, current_cell_point, SEEK_SET);
-    fscanf(file, "%f %f %f\n", &current_cell[0], &current_cell[1],
-           &current_cell[2]);
-    current_cell_point = ftell(file);
-    fgets(chunk_string, chunk_size * line_size + 1, file);
-
-    for (size_t j = 0; j < (file_size - current_cell_point) / chunk_size; ++j) {
-// Loop over all whole chunks
-#pragma omp for
+  for (size_t i = 0; i < file_size / chunk_size; i++) {
+    // Read first chunk
+    char *current_chunk_str =
+        (char *)malloc(sizeof(char) * line_size * chunk_size);
+    char *other_chunk_str =
+        (char *)malloc(sizeof(char) * line_size * chunk_size);
+    fscanf(file, format, current_chunk_str);
+// Read next chunk(s) and get distances
+#pragma omp parallell for
+    for (size_t j = i; j < file_size / chunk_size; j++) {
+      if (i == j) {
+        fseek(file, i * chunk_size * line_size, SEEK_SET);
+      }
+      fscanf(file, format, other_chunk_str);
+      // Get distances
       for (size_t k = 0; k < chunk_size; k++) {
-        sscanf(chunk_string + k * line_size, "%f %f %f\n", &all_cells[k][0],
-               &all_cells[k][1], &all_cells[k][2]);
-        short distance =
-            (short)(100 * get_distance(current_cell, all_cells[k]));
-#pragma omp atomic
-        distances[distance] += 1;
+        for (size_t l = k + 1; l < chunk_size; l++) {
+          short distance =
+              (unsigned short)(100 *
+                               (get_distance(current_chunk_str + l * line_size,
+                                             other_chunk_str + k * line_size) +
+                                0.005));
+          distances[distance] += 1;
+        }
       }
     }
-#pragma omp for
-    for (size_t j = 0; j < file_size % chunk_size; ++j) {
-      // Loop over remaining lines
-      sscanf(chunk_string + j * line_size, "%f %f %f\n", &all_cells[j][0],
-             &all_cells[j][1], &all_cells[j][2]);
-      short distance = (short)(100 * get_distance(current_cell, all_cells[j]));
-#pragma omp atomic
-      distances[distance] += 1;
-    }
+    free(current_chunk_str);
+    free(other_chunk_str);
   }
-  free(current_cell);
-  free(all_cell_entries);
-  free(all_cells);
 
   for (size_t i = 0; i < max_distance; i++) {
     if (distances[i] != 0)
