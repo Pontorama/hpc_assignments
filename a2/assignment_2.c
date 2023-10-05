@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
   // Read cmd line inputs here
   unsigned short n_threads = atoi(&argv[0][1]);
   // Open file, get file length
-  char filename[10] = "cells.txt";
+  char filename[10] = "cells";
   FILE *file = fopen(filename, "r");
   fseek(file, 0L, SEEK_END);
   const unsigned short line_size = 24;
@@ -33,7 +33,12 @@ int main(int argc, char **argv) {
 
   omp_set_num_threads(n_threads);
 
-  const unsigned int chunk_size = 10;
+  unsigned int chunk_size = 2 * file_size / n_threads;
+  static const unsigned int MAX_CHUNK_SIZE = 100000;
+  if (chunk_size > MAX_CHUNK_SIZE)
+    chunk_size = MAX_CHUNK_SIZE;
+  if (chunk_size < file_size)
+    chunk_size = file_size;
 
   // TODO: Duplicate histogram into as many pieces as there are threads
   const unsigned short max_distance = 3465;
