@@ -2,6 +2,7 @@
 #include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 static inline float get_distance(char *point_1, char *point_2) {
   // Assumes points in R^3
@@ -21,7 +22,7 @@ static inline float get_distance(char *point_1, char *point_2) {
 
 int main(int argc, char **argv) {
   // Read cmd line inputs here
-  unsigned short n_threads = 4;
+  unsigned short n_threads = atoi(&argv[0][1]);
   // Open file, get file length
   char filename[10] = "cells.txt";
   FILE *file = fopen(filename, "r");
