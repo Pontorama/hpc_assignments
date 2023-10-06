@@ -22,7 +22,7 @@ static inline float get_distance(char *point_1, char *point_2) {
 
 int main(int argc, char **argv) {
   // Read cmd line inputs here
-  unsigned short n_threads = atoi(&argv[0][1]);
+  unsigned short n_threads = atoi(&argv[1][2]);
   // Open file, get file length
   char filename[10] = "cells";
   FILE *file = fopen(filename, "r");
@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
 
   omp_set_num_threads(n_threads);
 
-  unsigned int chunk_size = 2 * file_size / n_threads;
+  unsigned int chunk_size = file_size / n_threads;
   static const unsigned int MAX_CHUNK_SIZE = 100000;
   if (chunk_size > MAX_CHUNK_SIZE)
     chunk_size = MAX_CHUNK_SIZE;
