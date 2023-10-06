@@ -48,12 +48,13 @@ int main(int argc, char **argv) {
   char format[10];
   sprintf(format, "%%%ic", line_size * chunk_size);
 
+  // Init chunk buffers
+  char *current_chunk_str =
+      (char *)malloc(sizeof(char) * line_size * chunk_size);
+  char *other_chunk_str = (char *)malloc(sizeof(char) * line_size * chunk_size);
+
   for (size_t i = 0; i < file_size / chunk_size; i++) {
     // Read first chunk
-    char *current_chunk_str =
-        (char *)malloc(sizeof(char) * line_size * chunk_size);
-    char *other_chunk_str =
-        (char *)malloc(sizeof(char) * line_size * chunk_size);
     fscanf(file, format, current_chunk_str);
 // Read next chunk(s) and get distances
 #pragma omp parallell for
@@ -74,10 +75,10 @@ int main(int argc, char **argv) {
         }
       }
     }
-    free(current_chunk_str);
-    free(other_chunk_str);
   }
 
+  free(current_chunk_str);
+  free(other_chunk_str);
   for (size_t i = 0; i < max_distance; i++) {
     if (distances[i] != 0)
       printf("%f: %llu\n", i / 100.0, distances[i]);
