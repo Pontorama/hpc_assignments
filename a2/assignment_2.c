@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-static inline float get_distance(char *point_1, char *point_2) {
+static inline short get_distance(char *point_1, char *point_2) {
   // Assumes points in R^3
   // Convert from text to floats
   float point_1_num[3];
@@ -14,9 +14,9 @@ static inline float get_distance(char *point_1, char *point_2) {
          &point_1_num[2]);
   sscanf(point_2, "%f %f %f\n", &point_2_num[0], &point_2_num[1],
          &point_2_num[2]);
-  float x = point_2_num[0] - point_1_num[0];
-  float y = point_2_num[1] - point_1_num[1];
-  float z = point_2_num[2] - point_1_num[2];
+  short x = 100 * (point_2_num[0] - point_1_num[0] + 0.005);
+  short y = 100 * (point_2_num[1] - point_1_num[1] + 0.005);
+  short z = 100 * (point_2_num[2] - point_1_num[2] + 0.005);
   return sqrtf(x * x + y * y + z * z);
 }
 
@@ -55,6 +55,11 @@ int main(int argc, char **argv) {
 
   unsigned int n_chunks = file_size / chunk_size;
 
+  short distance_1;
+  short distance_2;
+  short distance_3;
+  short distance_4;
+
   for (unsigned int i = 0; i < n_chunks; i++) {
     // Read first chunk
     fscanf(file, format, current_chunk_str);
@@ -68,29 +73,14 @@ int main(int argc, char **argv) {
       // Get distances
       for (unsigned int k = 0; k < chunk_size; k++) {
         for (unsigned int l = k + 1; l < chunk_size; l += 4) {
-          short distance_1 =
-              (unsigned short)(100 *
-                               (get_distance(current_chunk_str + k * line_size,
-                                             other_chunk_str + l * line_size) +
-                                0.005));
-          short distance_2 =
-              (unsigned short)(100 *
-                               (get_distance(current_chunk_str + k * line_size,
-                                             other_chunk_str +
-                                                 (l + 1) * line_size) +
-                                0.005));
-          short distance_3 =
-              (unsigned short)(100 *
-                               (get_distance(current_chunk_str + k * line_size,
-                                             other_chunk_str +
-                                                 (l + 2) * line_size) +
-                                0.005));
-          short distance_4 =
-              (unsigned short)(100 *
-                               (get_distance(current_chunk_str + k * line_size,
-                                             other_chunk_str +
-                                                 (l + 3) * line_size) +
-                                0.005));
+          distance_1 = get_distance(current_chunk_str + k * line_size,
+                                    other_chunk_str + l * line_size);
+          distance_2 = get_distance(current_chunk_str + k * line_size,
+                                    other_chunk_str + (l + 1) * line_size);
+          distance_3 = get_distance(current_chunk_str + k * line_size,
+                                    other_chunk_str + (l + 2) * line_size);
+          distance_4 = get_distance(current_chunk_str + k * line_size,
+                                    other_chunk_str + (l + 3) * line_size);
           distances[distance_1] += 1;
           distances[distance_2] += 1;
           distances[distance_3] += 1;
