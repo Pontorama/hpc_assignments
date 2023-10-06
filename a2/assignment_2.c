@@ -14,10 +14,10 @@ static inline float get_distance(char *point_1, char *point_2) {
          &point_1_num[2]);
   sscanf(point_2, "%f %f %f\n", &point_2_num[0], &point_2_num[1],
          &point_2_num[2]);
-  return sqrtf(
-      (point_2_num[0] - point_1_num[0]) * (point_2_num[0] - point_1_num[0]) +
-      (point_2_num[1] - point_1_num[1]) * (point_2_num[1] - point_1_num[1]) +
-      (point_2_num[2] - point_1_num[2]) * (point_2_num[2] - point_1_num[2]));
+  float x = point_2_num[0] - point_1_num[0];
+  float y = point_2_num[1] - point_1_num[1];
+  float z = point_2_num[2] - point_1_num[2];
+  return sqrtf(x * x + y * y + z * z);
 }
 
 int main(int argc, char **argv) {
@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
   omp_set_num_threads(n_threads);
 
   unsigned int chunk_size = file_size / n_threads;
-  static const unsigned int MAX_CHUNK_SIZE = 100000;
+  static const unsigned int MAX_CHUNK_SIZE = 600000;
   if (chunk_size > MAX_CHUNK_SIZE)
     chunk_size = MAX_CHUNK_SIZE;
   if (chunk_size < file_size)
@@ -53,25 +53,48 @@ int main(int argc, char **argv) {
       (char *)malloc(sizeof(char) * line_size * chunk_size);
   char *other_chunk_str = (char *)malloc(sizeof(char) * line_size * chunk_size);
 
-  for (size_t i = 0; i < file_size / chunk_size; i++) {
+  unsigned int n_chunks = file_size / chunk_size;
+
+  for (unsigned int i = 0; i < n_chunks; i++) {
     // Read first chunk
     fscanf(file, format, current_chunk_str);
 // Read next chunk(s) and get distances
 #pragma omp parallell for
-    for (size_t j = i; j < file_size / chunk_size; j++) {
+    for (unsigned int j = i; j < n_chunks; j++) {
       if (i == j) {
         fseek(file, i * chunk_size * line_size, SEEK_SET);
       }
       fscanf(file, format, other_chunk_str);
       // Get distances
-      for (size_t k = 0; k < chunk_size; k++) {
-        for (size_t l = k + 1; l < chunk_size; l++) {
-          short distance =
+      for (unsigned int k = 0; k < chunk_size; k++) {
+        for (unsigned int l = k + 1; l < chunk_size; l += 4) {
+          short distance_1 =
               (unsigned short)(100 *
-                               (get_distance(current_chunk_str + l * line_size,
-                                             other_chunk_str + k * line_size) +
+                               (get_distance(current_chunk_str + k * line_size,
+                                             other_chunk_str + l * line_size) +
                                 0.005));
-          distances[distance] += 1;
+          short distance_2 =
+              (unsigned short)(100 *
+                               (get_distance(current_chunk_str + k * line_size,
+                                             other_chunk_str +
+                                                 (l + 1) * line_size) +
+                                0.005));
+          short distance_3 =
+              (unsigned short)(100 *
+                               (get_distance(current_chunk_str + k * line_size,
+                                             other_chunk_str +
+                                                 (l + 2) * line_size) +
+                                0.005));
+          short distance_4 =
+              (unsigned short)(100 *
+                               (get_distance(current_chunk_str + k * line_size,
+                                             other_chunk_str +
+                                                 (l + 3) * line_size) +
+                                0.005));
+          distances[distance_1] += 1;
+          distances[distance_2] += 1;
+          distances[distance_3] += 1;
+          distances[distance_4] += 1;
         }
       }
     }
