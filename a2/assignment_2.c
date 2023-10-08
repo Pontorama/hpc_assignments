@@ -20,8 +20,6 @@ static inline short convert_to_short(char a[2], char b[3]) {
 }
 
 int main(int argc, char *argv[]) {
-  // Read cmd line inputs here
-
   // Open file, get file length
   char filename[10] = "cells";
   FILE *file = fopen(filename, "r");
@@ -121,46 +119,28 @@ int main(int argc, char *argv[]) {
 #pragma omp for
         for (unsigned int i = 0; i < chunk_size; i++) {
           // printf("%i\n", i);
-          char base_a[2];
-          char base_b[3];
-          char base_c[2];
-          char base_d[3];
-          char base_e[2];
-          char base_f[3];
-          char base_ca;
-          char base_cb;
-          char base_cc;
+          char buffer[18];
           // Could be optimized by not using sscanf
           sscanf(chunk_string + i * line_size,
-                 "%c%2c.%3c %c%2c.%3c %c%2c.%3c\n", &base_ca, base_a, base_b,
-                 &base_cb, base_c, base_d, &base_cc, base_e, base_f);
-          base[i][0] =
-              convert_to_short(base_a, base_b) * (base_ca == '+' ? 1 : -1);
-          base[i][1] =
-              convert_to_short(base_c, base_d) * (base_cb == '+' ? 1 : -1);
-          base[i][2] =
-              convert_to_short(base_e, base_f) * (base_cc == '+' ? 1 : -1);
-
-          char moving_a[2];
-          char moving_b[3];
-          char moving_c[2];
-          char moving_d[3];
-          char moving_e[2];
-          char moving_f[3];
-          char moving_ca;
-          char moving_cb;
-          char moving_cc;
-          // Could be optimized by not using sscanf
+                 "%c%2c.%3c %c%2c.%3c %c%2c.%3c\n", buffer, buffer + 1,
+                 buffer + 3, buffer + 6, buffer + 7, buffer + 9, buffer + 12,
+                 buffer + 13, buffer + 15);
+          base[i][0] = convert_to_short(buffer + 1, buffer + 3) *
+                       (buffer[0] == '+' ? 1 : -1);
+          base[i][1] = convert_to_short(buffer + 7, buffer + 9) *
+                       (buffer[6] == '+' ? 1 : -1);
+          base[i][2] = convert_to_short(buffer + 13, buffer + 15) *
+                       (buffer[12] == '+' ? 1 : -1);
           sscanf(moving_string + i * line_size,
-                 "%c%2c.%3c %c%2c.%3c %c%2c.%3c\n", &moving_ca, moving_a,
-                 moving_b, &moving_cb, moving_c, moving_d, &moving_cc, moving_e,
-                 moving_f);
-          moving[i][0] = convert_to_short(moving_a, moving_b) *
-                         (moving_ca == '+' ? 1 : -1);
-          moving[i][1] = convert_to_short(moving_c, moving_d) *
-                         (moving_cb == '+' ? 1 : -1);
-          moving[i][2] = convert_to_short(moving_e, moving_f) *
-                         (moving_cc == '+' ? 1 : -1);
+                 "%c%2c.%3c %c%2c.%3c %c%2c.%3c\n", buffer, buffer + 1,
+                 buffer + 3, buffer + 6, buffer + 7, buffer + 9, buffer + 12,
+                 buffer + 13, buffer + 15);
+          moving[i][0] = convert_to_short(buffer + 1, buffer + 3) *
+                         (buffer[0] == '+' ? 1 : -1);
+          moving[i][1] = convert_to_short(buffer + 7, buffer + 9) *
+                         (buffer[6] == '+' ? 1 : -1);
+          moving[i][2] = convert_to_short(buffer + 13, buffer + 15) *
+                         (buffer[12] == '+' ? 1 : -1);
         }
         short thread;
         for (unsigned int i = 0; i < chunk_size; i++) {
@@ -191,28 +171,21 @@ int main(int argc, char *argv[]) {
       fscanf(file, format, chunk_string);
       unsigned int rest_size_quad = rest_size / 4;
       for (unsigned int rest_iter = 0; rest_iter < rest_size; rest_iter++) {
-        char base_a[2];
-        char base_b[3];
-        char base_c[2];
-        char base_d[3];
-        char base_e[2];
-        char base_f[3];
-        char base_ca;
-        char base_cb;
-        char base_cc;
+        char buffer[18];
         // Could be optimized by not using sscanf
         sscanf(chunk_string + rest_iter * line_size,
-               "%c%2c.%3c %c%2c.%3c %c%2c.%3c\n", &base_ca, base_a, base_b,
-               &base_cb, base_c, base_d, &base_cc, base_e, base_f);
-        base[rest_iter][0] =
-            convert_to_short(base_a, base_b) * (base_ca == '+' ? 1 : -1);
-        base[rest_iter][1] =
-            convert_to_short(base_c, base_d) * (base_cb == '+' ? 1 : -1);
-        base[rest_iter][2] =
-            convert_to_short(base_e, base_f) * (base_cc == '+' ? 1 : -1);
+               "%c%2c.%3c %c%2c.%3c %c%2c.%3c\n", buffer, buffer + 1,
+               buffer + 3, buffer + 6, buffer + 7, buffer + 9, buffer + 12,
+               buffer + 13, buffer + 15);
+        base[rest_iter][0] = convert_to_short(buffer + 1, buffer + 3) *
+                             (buffer[0] == '+' ? 1 : -1);
+        base[rest_iter][1] = convert_to_short(buffer + 7, buffer + 9) *
+                             (buffer[6] == '+' ? 1 : -1);
+        base[rest_iter][2] = convert_to_short(buffer + 13, buffer + 15) *
+                             (buffer[12] == '+' ? 1 : -1);
       }
       unsigned short thread;
-      for (unsigned int i = 0; i < rest_size_quad; i++) {
+      for (unsigned int i = 0; i < rest_size_quad; i += 4) {
 #pragma omp for
         for (unsigned int j = i + 1; j < rest_size_quad - 3; j += 4) {
           // printf("base[i]: %i %i %i\n", base[i][0], base[i][1],
