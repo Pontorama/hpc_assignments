@@ -10,13 +10,13 @@
 TEST_SRC = $(wildcard tests/*.c)
 TESTS = $(patsubst %.c, %, $(TEST_SRC))
 .PHONY : all
-all : clean cell_distances $(TESTS)
+all : newton $(TESTS)
 
-cell_distances: src/assignment_2_1.c
-	gcc -fopenmp -march=native -lm -O2 -o $@ $<
+newton: src/assignment_3.c
+	gcc -march=native -lm -g -O2 -o $@ $<
 $(TESTS): %:%.c
-	gcc -O3 -g -o $@ $<
+	gcc -O2 -g -lm -o $@ $<
 
 .PHONY: clean
 clean: 
-	rm -rf cell_distances
+	rm -rf newton
