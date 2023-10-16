@@ -15,7 +15,7 @@ all : newton $(TESTS)
 newton: src/assignment_3.c
 	gcc -march=native -lm -g -O2 -o $@ $<
 $(TESTS): %:%.c
-	gcc -O3 -g -o $@ $<
+	gcc -O2 -g -lm -o $@ $<
 
 .PHONY: clean
 clean: 

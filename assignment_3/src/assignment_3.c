@@ -20,6 +20,32 @@ create_color_palette(char* color_palette, const unsigned short line_size){
 	memcpy(color_palette + 9*line_size, " 94  79 162\n",line_size);
 }
 
+//In case we'd want to change to something else
+static inline
+double
+calc_derivative(double x, const unsigned short degree){
+	return degree*pow(x, degree-1);
+}
+typedef struct{
+	unsigned int start;
+	unsigned int stop;
+	char** attractors;
+	char** convergences;
+	mtx_t* mtx;
+	cnd_t* cnd;
+} compute_struct_t
+
+
+int
+compute_thread(void* args){
+	
+	return 0;
+}
+
+int
+write_thread(void* args){
+	return 0;
+}
 
 
 int
@@ -27,7 +53,7 @@ main(int argc, char* argv[]){
 	//Read command lines
 	unsigned short n_threads;
 	unsigned short n_lines;
-	const unsigned short exponent = atoi(argv[3]);
+	const unsigned short degree = atoi(argv[3]);
 
 	char first_char = argv[1][1];
 	
@@ -77,8 +103,20 @@ main(int argc, char* argv[]){
 		convergences[i] = convergences_entries + i*n_lines;
 	}
 
+	//Threading: Use threads to calculate one row at a time for the arrays
+	//Connect with a write thread that writes row for row
+	//Need to keep track of which line to set the file pointer correctly
+	//Set up the framwork for computational threads, but just return a set value to check synchronization and writing
+
+
+
+
+
+
+
 	//Test writing to file
   //Assume n_lines = 10 and write all them colors for the number of lines
+
 	for(unsigned int i = 0; i < n_lines; i++){
 		for(unsigned int j = 0; j < n_lines; j++){
 			attractors[i][j] = i;
