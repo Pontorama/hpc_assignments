@@ -2,6 +2,7 @@
 #define ppm_utils_h
 #include "newton.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 const unsigned int MAX_COLOR_VAL = 128;
 unsigned int N_LINES;
