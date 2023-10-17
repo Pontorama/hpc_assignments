@@ -13,7 +13,7 @@ TESTS = $(patsubst %.c, %, $(TEST_SRC))
 all : newton $(TESTS)
 
 newton: src/assignment_3.c
-	gcc -march=native -lm -g -O2 -o $@ $<
+	gcc -march=native -lpthread -lm -g -O0 -o $@ $<
 $(TESTS): %:%.c
 	gcc -O2 -g -lm -o $@ $<
 
