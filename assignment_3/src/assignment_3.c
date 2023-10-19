@@ -62,7 +62,7 @@ static inline void cart_to_polar(const double x, const double y, double* r, doub
 }
 
 
-int newton_iterations(double complex z, double complex* root_list,
+static inline int newton_iterations(double complex z, double complex* root_list,
 		unsigned char* attractor, unsigned char* convergence){
 	unsigned char root;
 	double complex check;
@@ -75,8 +75,9 @@ int newton_iterations(double complex z, double complex* root_list,
 	*convergence = 0;
 	for(size_t i = 0; i < MAX_ITERS; i++){
 		for(size_t j = 0; j < degree; j++){
-			check = root_list[j] - z;
-			if(creal(check*conj(check))*1000 <= 0.001){
+			check = (root_list[j] - z)*1000;
+//				if(cabs(check) < 0.001){
+			if(creal(check*conj(check)) <= 0.001){
 //				printf("Found a root!(%i, %i)\n", j, i);
 				*attractor = (unsigned char)j;
 				*convergence = (unsigned char)i;
@@ -109,7 +110,7 @@ int newton_iterations(double complex z, double complex* root_list,
 					conj_z = conj(z);
 					norm = creal(z*conj_z);
 					div = conj_z/norm;
-					z = 0.33*(2*z+div*div);
+					z = 1/3.*(2*z+div*div);
 					break;
 				case 4:
 					conj_z = conj(z);
@@ -127,13 +128,13 @@ int newton_iterations(double complex z, double complex* root_list,
 					conj_z = conj(z);
 					norm = creal(z*conj_z);
 					div = conj_z/norm;
-					z = 0.167*(5*z+div*div*div*div*div);
+					z = 1/6.*(5*z+div*div*div*div*div);
 					break;
 				case 7:
 					conj_z = conj(z);
 					norm = creal(z*conj_z);
 					div = conj_z/norm;
-					z = 0.143*(6*z+div*div*div*div*div*div);
+					z = 1/7.*(6*z+div*div*div*div*div*div);
 					break;
 				case 8:
 					conj_z = conj(z);
@@ -145,7 +146,7 @@ int newton_iterations(double complex z, double complex* root_list,
 					conj_z = conj(z);
 					norm = creal(z*conj_z);
 					div = conj_z/norm;
-					z = 0.11*(8*z+div*div*div*div*div*div*div*div);
+					z = 1/9.*(8*z+div*div*div*div*div*div*div*div);
 					break;
 			}
 
