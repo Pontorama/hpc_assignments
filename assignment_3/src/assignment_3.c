@@ -35,7 +35,10 @@ void create_color_palette(char *color_palette, const unsigned short line_size) {
   memcpy(color_palette + 10 * line_size, "  0   0   0\n", line_size);
 }
 void create_grey_palette(char *grey_palette, const unsigned short line_size) {
-  memcpy(grey_palette, "25  25  25\n", line_size);
+	for(size_t i = 0; i < MAX_ITERS; i++){
+		sprintf(grey_palette+line_size*i, "%3i %3i %3i", i,i,i);
+	}
+/*  memcpy(grey_palette, "25  25  25\n", line_size);
   memcpy(grey_palette + line_size, " 50  50  50\n", line_size);
   memcpy(grey_palette + 2 * line_size, " 75  75  75\n", line_size);
   memcpy(grey_palette + 3 * line_size, "100 100 100\n", line_size);
@@ -46,6 +49,7 @@ void create_grey_palette(char *grey_palette, const unsigned short line_size) {
   memcpy(grey_palette + 8 * line_size, "225 225 225\n", line_size);
   memcpy(grey_palette + 9 * line_size, "250 250 250\n", line_size);
   memcpy(grey_palette + 10 * line_size, "  0   0   0\n", line_size);
+*/
 }
 // In case we'd want to change to something else
 static inline double calc_derivative(double x, const unsigned short degree) {
@@ -57,25 +61,29 @@ static inline void cart_to_polar(const double x, const double y, double* r, doub
 	*theta = asin(y/ *r);
 }
 
+
 int newton_iterations(double complex z, double complex* root_list,
 		unsigned char* attractor, unsigned char* convergence){
 	unsigned char root;
 	double complex check;
-	double complex f_z;
-	double complex f_z_d;
+//	double complex f_z;
+//	double complex f_z_d;
+	double complex norm;
+	double complex conj_z;
+	double complex div;
 	*attractor = 10;
 	*convergence = 0;
 	for(size_t i = 0; i < MAX_ITERS; i++){
 		for(size_t j = 0; j < degree; j++){
 			check = root_list[j] - z;
-			if(creal(check*conj(check)) <= 0.1){
-				printf("Found a root!(%i, %i)\n", j, i);
+			if(creal(check*conj(check))*1000 <= 0.001){
+//				printf("Found a root!(%i, %i)\n", j, i);
 				*attractor = (unsigned char)j;
 				*convergence = (unsigned char)i;
 				return 0;
 			}
 		}
-		if(creal(z*conj(z)) <= 0.001){
+		if(creal(z*conj(z))*1000 <= 0.001){
 				*attractor = 10;
 				*convergence = 0;
 				return 0;
@@ -86,13 +94,69 @@ int newton_iterations(double complex z, double complex* root_list,
 				*convergence = 0;
 				return 0;
 			}
-		/*	f_z = z;
+
+			switch(degree){
+				case 1:
+					z = 1;
+					break;
+				case 2:
+					conj_z = conj(z);
+					norm = creal(z*conj_z);
+					div = conj_z/norm;
+					z = 0.5*(z + div);
+					break;
+				case 3:
+					conj_z = conj(z);
+					norm = creal(z*conj_z);
+					div = conj_z/norm;
+					z = 0.33*(2*z+div*div);
+					break;
+				case 4:
+					conj_z = conj(z);
+					norm = creal(z*conj_z);
+					div = conj_z/norm;
+					z = 0.25*(3*z+div*div*div);
+					break;
+				case 5:
+					conj_z = conj(z);
+					norm = creal(z*conj_z);
+					div = conj_z/norm;
+					z = 0.2*(4*z+div*div*div*div);
+					break;
+				case 6:
+					conj_z = conj(z);
+					norm = creal(z*conj_z);
+					div = conj_z/norm;
+					z = 0.167*(5*z+div*div*div*div*div);
+					break;
+				case 7:
+					conj_z = conj(z);
+					norm = creal(z*conj_z);
+					div = conj_z/norm;
+					z = 0.143*(6*z+div*div*div*div*div*div);
+					break;
+				case 8:
+					conj_z = conj(z);
+					norm = creal(z*conj_z);
+					div = conj_z/norm;
+					z = 0.125*(7*z+div*div*div*div*div*div*div);
+					break;
+				case 9:
+					conj_z = conj(z);
+					norm = creal(z*conj_z);
+					div = conj_z/norm;
+					z = 0.11*(8*z+div*div*div*div*div*div*div*div);
+					break;
+			}
+
+/*			f_z = z;
 			f_z_d = z;
-		for(size_t j = 0; j < degree-2; j++){
+			for(size_t j = 0; j < degree-2; j++){
 				f_z_d *= f_z_d;
 			}
-			f_z = f_z_d*f_z_d;*/
-			z = z - (cpow(z,degree)-1)/(degree*cpow(z,degree-1));
+			f_z = f_z_d*f_z_d;
+*/
+			//z = z - (cpow(z,degree)-1)/(degree*cpow(z,degree-1));
 		
 	}
 	return 0;
@@ -210,6 +274,7 @@ int write_thread(void *args) {
                    attractors[i][j] *
                        line_size,
                sizeof(char), line_size, attractors_file);
+				fwrite(grey_palette + convergences[i][j] * line_size, sizeof(char),line_size, convergences_file);
     }
   }
 
@@ -240,7 +305,7 @@ int main(int argc, char *argv[]) {
   color_palette = (char *)malloc(sizeof(char) * max_degree * line_size + 1);
   create_color_palette(color_palette, line_size);
 
-  grey_palette = (char *)malloc(sizeof(char) * max_degree * line_size + 1);
+  grey_palette = (char *)malloc(sizeof(char) * MAX_ITERS * line_size + 1);
   create_grey_palette(grey_palette, line_size);
 
 
@@ -292,6 +357,10 @@ int main(int argc, char *argv[]) {
     convergences[i] = convergences_entries + i * n_lines;
   }
 
+	switch(degree){
+		case 1:
+
+	}
   // Threading: Use threads to calculate one row at a time for the arrays
   // Connect with a write thread that writes row for row
   // Need to keep track of which line to set the file pointer correctly
