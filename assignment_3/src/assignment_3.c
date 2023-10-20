@@ -15,6 +15,10 @@ char *color_palette;
 char *grey_palette;
 unsigned short line_size;
 unsigned short degree;
+
+char* write_attractors;
+char* write_convergence;
+
 //double x_min; double x_max;
 //double dx;
 //double root_list[degree][2];
@@ -36,7 +40,7 @@ void create_color_palette(char *color_palette, const unsigned short line_size) {
 }
 void create_grey_palette(char *grey_palette, const unsigned short line_size) {
 	for(size_t i = 0; i < MAX_ITERS; i++){
-		sprintf(grey_palette+line_size*i, "%3i %3i %3i", i,i,i);
+		sprintf(grey_palette+line_size*i, "%3i %3i %3i\n", i,i,i);
 	}
 /*  memcpy(grey_palette, "25  25  25\n", line_size);
   memcpy(grey_palette + line_size, " 50  50  50\n", line_size);
@@ -63,39 +67,88 @@ static inline void cart_to_polar(const double x, const double y, double* r, doub
 
 
 static inline int newton_iterations(double complex z, double complex* root_list,
-		unsigned char* attractor, unsigned char* convergence){
+		 int row_number, int col_number){
 	unsigned char root;
+	double check_x;
+	double check_y;
 	double complex check;
 //	double complex f_z;
 //	double complex f_z_d;
-	double complex norm;
+	double norm;
 	double complex conj_z;
-	double complex div;
-	*attractor = 10;
-	*convergence = 0;
-	for(size_t i = 0; i < MAX_ITERS; i++){
-		for(size_t j = 0; j < degree; j++){
-			check = (root_list[j] - z)*1000;
-//				if(cabs(check) < 0.001){
-			if(creal(check*conj(check)) <= 0.001){
-//				printf("Found a root!(%i, %i)\n", j, i);
-				*attractor = (unsigned char)j;
-				*convergence = (unsigned char)i;
-				return 0;
+	double complex z_k;
+//	double complex div;
+//	double complex z_1;
+//	double complex z_2;
+//	*attractor = 10;
+//	*convergence = 0;
+	size_t i;
+	if(degree == 1){
+ 	z=1;
+	}
+	else{
+		for(i = 0; i < MAX_ITERS; i++){
+			for(size_t j = 0; j < degree; j++){
+					check = (root_list[j]-z)*1000;
+					check_x = creal(check);
+					check_y = cimag(check);
+					if(check_x*check_x + check_y*check_y < 0.001){
+						strncpy(write_attractors + line_size*(n_lines*row_number + col_number),
+										color_palette + line_size*j, line_size);
+						strncpy(write_convergence + line_size*(n_lines*row_number + col_number),
+										grey_palette + line_size*j, line_size);
+	//				printf(write_convergence + line_size*(n_lines*row_number + col_number));
+	//			check = (root_list[j] - z)*1000;
+	//			if(creal(check*conj(check)) <= 0.001){
+	//				printf("Found a root!(%i, %i)\n", j, i);
+	//				*attractor = (unsigned char)j;
+	//				*convergence = (unsigned char)i;
+					return 0;
+					}
 			}
-		}
-		if(creal(z*conj(z))*1000 <= 0.001){
-				*attractor = 10;
-				*convergence = 0;
-				return 0;
-			}
-		if(creal(z) > 10000000000 || cimag(z) > 10000000000 ||
-					creal(z) < -10000000000 || cimag(z) < -10000000000){
-				*attractor = 10;
-				*convergence = 0;
-				return 0;
-			}
+			if(creal(z*conj(z)) <= 0.001){
+	//				*attractor = 10;
+	//				*convergence = 0;
+						strncpy(write_attractors + line_size*(n_lines*row_number + col_number),
+										color_palette + line_size*10, line_size);
+						strncpy(write_convergence + line_size*(n_lines*row_number + col_number),
+										grey_palette, line_size);
+					return 0;
+				}
+			if(creal(z) > 10000000000 || cimag(z) > 10000000000 ||
+						creal(z) < -10000000000 || cimag(z) < -10000000000){
+	//				*attractor = 10;
+	//				*convergence = 0;
+						strncpy(write_attractors + line_size*(n_lines*row_number + col_number),
+										color_palette + line_size*10, line_size);
+						strncpy(write_convergence + line_size*(n_lines*row_number + col_number),
+										grey_palette, line_size);
+					return 0;
+				}
 
+			z_k = z;
+			for(unsigned short k =0; k < degree-2; k++){
+				z_k *= z;
+			}
+			conj_z = conj(z_k);
+			norm = creal(z_k*conj_z);
+			z_k *= z;
+			z = z-(z_k-1)*conj_z/(degree*norm);
+		}
+	}
+	
+	if(i == MAX_ITERS){
+				strncpy(write_attractors + line_size*(n_lines*row_number + col_number),
+									color_palette + line_size*10, line_size);
+				strncpy(write_convergence + line_size*(n_lines*row_number + col_number),
+									grey_palette, line_size);
+	}
+
+	return 0;
+	
+}
+
+/*
 			switch(degree){
 				case 1:
 					z = 1;
@@ -122,7 +175,7 @@ static inline int newton_iterations(double complex z, double complex* root_list,
 					conj_z = conj(z);
 					norm = creal(z*conj_z);
 					div = conj_z/norm;
-					z = 0.2*(4*z+div*div*div*div);
+					z = (4*z+div*div*div*div)/5;
 					break;
 				case 6:
 					conj_z = conj(z);
@@ -134,7 +187,10 @@ static inline int newton_iterations(double complex z, double complex* root_list,
 					conj_z = conj(z);
 					norm = creal(z*conj_z);
 					div = conj_z/norm;
-					z = 1/7.*(6*z+div*div*div*div*div*div);
+					z_1 = div*div*div;
+					z_2 = div*div*div;
+					//z = (6*z+z_1*z_2)/7;
+					z = (6*z+z_1*z_2)/7;
 					break;
 				case 8:
 					conj_z = conj(z);
@@ -149,7 +205,7 @@ static inline int newton_iterations(double complex z, double complex* root_list,
 					z = 1/9.*(8*z+div*div*div*div*div*div*div*div);
 					break;
 			}
-
+*/
 /*			f_z = z;
 			f_z_d = z;
 			for(size_t j = 0; j < degree-2; j++){
@@ -159,21 +215,14 @@ static inline int newton_iterations(double complex z, double complex* root_list,
 */
 			//z = z - (cpow(z,degree)-1)/(degree*cpow(z,degree-1));
 		
-	}
-	return 0;
-	
-}
 
 typedef struct {
-	unsigned int n_thread;
 	unsigned int *n_written;
   unsigned int row_start;
 	unsigned int row_end;
-	unsigned int *row_index;
   unsigned char **attractors;
   unsigned char **convergences;
 	double complex *root_list;
-	bool *ready;
   mtx_t *mtx;
   cnd_t *cnd;
 	double dx;
@@ -185,7 +234,6 @@ typedef struct {
   unsigned char **attractors;
   unsigned char **convergences;
 	unsigned int *n_written;
-  bool *ready;
   cnd_t *cnd;
   mtx_t *mtx;
 } write_struct_t;
@@ -194,32 +242,32 @@ int compute_thread(void *args) {
 	const compute_struct_t *thrd_info = (compute_struct_t*)args;
 	const unsigned int row_start = thrd_info->row_start;
 	const unsigned int row_end = thrd_info->row_end;
-	unsigned int* row_index = thrd_info->row_index;
 	unsigned char** attractors = thrd_info->attractors;
 	unsigned char** convergences = thrd_info->convergences;
 	double complex* root_list = thrd_info->root_list;
-	bool* ready = thrd_info->ready;
 	cnd_t* cnd = thrd_info->cnd;
 	mtx_t* mtx = thrd_info->mtx;
-	unsigned int n_thread = thrd_info->n_thread;
 	unsigned int* n_written = thrd_info->n_written;
 	const double x_min = thrd_info->x_min;
 	const double dx = thrd_info->dx;
 
 	double x;
 	double y;
-	//double r;
-	//double theta;
 	double complex z;
 	//char* attractor = (char*)malloc(sizeof(char)*(row_end-row_start)+1);
+	//char* convergence = (char*)malloc(sizeof(char)*(row_end-row_start)+1);
 	for(unsigned int i = row_start; i < row_end; i++){
+		/*for(unsigned int j = 0; j < n_lines; j++){
+			attractor[j] = attractors[i][j];
+			convergence[j] = convergences[i][j];
+		}*/
 		for(unsigned int j = 0; j < n_lines; j++){
-			x = x_min + i*dx;
-			y = x_min + j*dx;
-			//cart_to_polar(x,y,&r,&theta);
+			x = (x_min + i*dx);
+			y = (x_min + j*dx);
+			//cart_to_polar(x,y&r,&theta);
 			z = x + I*y;
 			int r;
-			r = newton_iterations(z, root_list, &attractors[i][j], &convergences[i][j]);
+			r = newton_iterations(z, root_list,i,j);
 			
 //			attractors[i][j] = n_thread;
 //			convergences[i][j] = n_thread;
@@ -240,10 +288,8 @@ int compute_thread(void *args) {
 int write_thread(void *args) {
   const write_struct_t *thrd_write_info = (write_struct_t *)args;
 //  unsigned int n_written_rows = 0;
-	unsigned int* row_index;
 	unsigned char** attractors = thrd_write_info->attractors;
 	unsigned char** convergences = thrd_write_info->convergences;
-	bool* ready = thrd_write_info->ready;
 	mtx_t* mtx = thrd_write_info->mtx;
 	cnd_t* cnd = thrd_write_info->cnd;
 	unsigned int *n_written = thrd_write_info->n_written;
@@ -269,15 +315,22 @@ int write_thread(void *args) {
 
 	printf("Completed all threads\n");
   //fseek(attractors_file, 15, SEEK_SET);
-  for (unsigned int i = 0; i < n_lines; i++) {
-    for (unsigned int j = 0; j < n_lines; j++) {
-        fwrite(color_palette +
+//  for (unsigned int i = 0; i < n_lines; i++) {
+//    for (unsigned int j = 0; j < n_lines; j++) {
+//					fprintf(attractors_file,write_attractors);
+		write_attractors[n_lines*n_lines*line_size] = '\0';
+		fwrite(write_attractors, sizeof(char), n_lines*n_lines*line_size,attractors_file);
+		fwrite(write_convergence, sizeof(char), n_lines*n_lines*line_size,convergences_file);
+
+//					fwrite(write_convergence, sizeof(char), n_lines*n_lines*line_size,convergences_file);
+/*        fwrite(color_palette +
                    attractors[i][j] *
                        line_size,
                sizeof(char), line_size, attractors_file);
 				fwrite(grey_palette + convergences[i][j] * line_size, sizeof(char),line_size, convergences_file);
-    }
-  }
+*/ 
+   //}
+  //}
 
   return 0;
 }
@@ -285,7 +338,10 @@ int write_thread(void *args) {
 int main(int argc, char *argv[]) {
   // Read command lines
   degree = atoi(argv[3]);
-
+	if(degree > 9){
+		printf("Invalid degree\n");
+		exit(1);
+	}
   char first_char = argv[1][1];
 
   if (first_char == 't') {
@@ -309,15 +365,6 @@ int main(int argc, char *argv[]) {
   grey_palette = (char *)malloc(sizeof(char) * MAX_ITERS * line_size + 1);
   create_grey_palette(grey_palette, line_size);
 
-
-//	double *root_list_entries = (double*)malloc(sizeof(double)*degree*2);
-//	double **root_list = (double**)malloc(sizeof(double*)*degree);
-	
-//	for(size_t i = 0; i < degree; i++){
-//		root_list[i] = root_list_entries + 2*i;
-//	}
-
-
   double complex* root_list = (double complex*)malloc(sizeof(double complex) * max_degree);
   for (size_t i = 0; i < degree; i++) {
     root_list[i] = cos(2 * PI * i/(double)degree) 
@@ -328,7 +375,7 @@ int main(int argc, char *argv[]) {
 	char* a_file_name = (char*)malloc(sizeof(char)*100);
 	char* c_file_name = (char*)malloc(sizeof(char)*100);
 	sprintf(a_file_name, "newton_attractors_x%d.ppm", degree);
-	sprintf(c_file_name, "newton_convergences_x%d.ppm", degree);
+	sprintf(c_file_name, "newton_convergence_x%d.ppm", degree);
 
   attractors_file = fopen(a_file_name, "w");
 	convergences_file = fopen(c_file_name, "w");
@@ -338,10 +385,6 @@ int main(int argc, char *argv[]) {
 
 	free(a_file_name);
 	free(c_file_name);
-
-//	for(unsigned int i = 0; i < n_lines*n_lines; i++){
-//		fwrite("           \n", sizeof(char), line_size, attractors_file);
-//	}
 
   // Global result arrays
   unsigned char *attractors_entries =
@@ -357,11 +400,9 @@ int main(int argc, char *argv[]) {
     attractors[i] = attractors_entries + i * n_lines;
     convergences[i] = convergences_entries + i * n_lines;
   }
+	write_attractors = (char*)malloc(sizeof(char)*(n_lines*n_lines*line_size+1));
+	write_convergence = (char*)malloc(sizeof(char)*(n_lines*n_lines*line_size+1));
 
-	switch(degree){
-		case 1:
-
-	}
   // Threading: Use threads to calculate one row at a time for the arrays
   // Connect with a write thread that writes row for row
   // Need to keep track of which line to set the file pointer correctly
@@ -373,9 +414,6 @@ int main(int argc, char *argv[]) {
 
 	cnd_t cnd;
 	cnd_init(&cnd);
-
-	bool ready = false;
-	unsigned int row_index = 0;
 	
 	thrd_t threads[n_threads];
 	thrd_t w_thread;
@@ -388,11 +426,8 @@ int main(int argc, char *argv[]) {
 		thrds_info[i].attractors = attractors;
 		thrds_info[i].convergences = convergences;
 		thrds_info[i].n_written = &n_written;
-		thrds_info[i].n_thread = i;
 		thrds_info[i].row_start = row_start;
 		thrds_info[i].row_end = i != n_threads - 1 ? row_start + n_lines_loc : n_lines;
-		thrds_info[i].ready = &ready;
-		thrds_info[i].row_index = &row_index;
 		thrds_info[i].mtx = &mtx;
 		thrds_info[i].cnd = &cnd;
 		thrds_info[i].root_list = root_list;
@@ -411,8 +446,6 @@ int main(int argc, char *argv[]) {
 		thrd_info_write.attractors = attractors;
 		thrd_info_write.convergences = convergences;
 		thrd_info_write.n_written = &n_written;
-		thrd_info_write.ready = &ready;
-		thrd_info_write.row_index = &row_index;
 		thrd_info_write.mtx = &mtx;
 		thrd_info_write.cnd = &cnd;
 
@@ -460,5 +493,7 @@ int main(int argc, char *argv[]) {
   free(attractors_entries);
   free(convergences);
   free(convergences_entries);
+	free(write_convergence);
+	free(write_attractors);
   return 0;
 }
